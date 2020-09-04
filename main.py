@@ -30,6 +30,7 @@ def mouse_event_handler(event, mouse_x, mouse_y, flags, param):
             print('[INFO] Moved ROI vertex {} to (x: {}, y: {})'.format(
                     preproc.active_vtx_id, mouse_x, mouse_y))
             preproc.active_vtx_id = -1
+###
 
 # initialise mouse event handler
 cv2.setMouseCallback('LD Threshold Tuner', mouse_event_handler)
@@ -43,6 +44,7 @@ if __name__ == '__main__':
         processed_frame = frame.copy()
         
         preproc.update(frame) # update pre-processor object
+        processed_frame = preproc.process_frame(processed_frame) # apply preprocessing
         
         # place frames side-by-side and show the window
         combined_frame = np.hstack((frame, processed_frame))
