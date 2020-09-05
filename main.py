@@ -27,7 +27,7 @@ def mouse_event_handler(event, mouse_x, mouse_y, flags, param):
     elif event == cv2.EVENT_LBUTTONUP:
         # mark active ROI vertex as inactive
         if preproc.active_vtx_id != -1:
-            print('[INFO] Moved ROI vertex {} to (x: {}, y: {})'.format(
+            print('[INFO] Moved ROI vertex {} to position (x: {}, y: {})'.format(
                     preproc.active_vtx_id, mouse_x, mouse_y))
             preproc.active_vtx_id = -1
 ###
@@ -53,5 +53,6 @@ if __name__ == '__main__':
         # handling user input
         keypress = cv2.waitKey(20 & 0xFF)
         if keypress == ord('q'):
+            print('[INFO] Closing application...')
             cv2.destroyAllWindows()
             break

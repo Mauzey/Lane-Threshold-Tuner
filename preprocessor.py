@@ -103,75 +103,88 @@ class PreProcessor():
         
         # apply a four-point perspective transform if there are 4 vertices
         if len(self.roi_vertices) == 4:
-            processed_frame = four_point_transform(frame, self.roi_vertices)
+            processed_frame, _ = four_point_transform(frame, self.roi_vertices)
+            # processed_frame = perspective_transform(frame, self.roi_vertices)
         
         return processed_frame
     ###
 
-def four_point_transform(frame, vtcs):
-    """ Apply a four-point transform to a frame using a region of interest """
-    # sort ROI vertices into the following order:
-    #   top-left -> top-right -> bottom-right -> bottom-left
-    # ----------------------------------------------------
-    vertices = [] # stores the ROI vertices
-    ordered_vertices = np.zeros((4, 2), dtype='float32') # stores ordered vertices
+def four_point_transform(frame, vertices):
+    """ Apply a four-point perspective transform to a frame, using a region of interest """
+    frame_shape = frame.shape
     
-    print(vtcs)
+    # define source and destination vertices
+    src = np.float32(vertices)
+    dst = np.float32([[0, frame.shape[0]], [0,0],
+                     [frame.shape[1], 0], [frame.shape[1], frame.shape[0]]])
     
-    for i, vertex in enumerate(vtcs):
-        print(i)
-        vertices.append((vertex[0], vertex[1]))
+    # create transformation matrices
+    transform_matrix = cv2.getPerspectiveTransform(src, dst)
+    inv_transform_matrix = cv2.getPerspectiveTransform(dst, src) # inverted
     
-    vertices = np.array(eval(vertices, dtype='float32'))
+    # perform perspective warp
+    frame_size = (frame_shape[1], frame_shape[0])
+    warped_frame = cv2.warpPerspective(frame, transform_matrix, frame_size,
+                                       flags=cv2.INTER_LINEAR)
     
-    print(vertices)
+    return warped_frame, inv_transform_matrix
+
+# def four_point_transform(frame, vertices):
+#     """ Apply a four-point transform to a frame using a region of interest """
+#     # sort ROI vertices into the following order:
+#     #   top-left -> top-right -> bottom-right -> bottom-left
+#     # ----------------------------------------------------
+#     vertices_sum = [] # stores the sum of vertex coordinates
+#     ordered_vertices = np.zeros((4, 2), dtype='float32') # stores ordered vertices
     
-    # the top-left point will have the smallest sum (x_pos + y_pos). Similarly,
-    #   the bottom-right point will have the greatest
-    vertices_sum = vertices.sum(axis=1)
-    ordered_vertices[0] = vertices[np.argmin(vertices_sum)]
-    ordered_vertices[2] = vertices[np.argmax(vertices_sum)]
+#     # the top-left point will have the smallest sum (x_pos + y_pos). Similarly,
+#     #   the bottom-right point will have the greatest  
+#     for vertex in vertices:
+#         vertices_sum.append(sum(vertex))
     
-    # the top-right vertex will have the largest difference in x_pos and y_pos
-    #   values. Similarly, the bottom-left will have the largest
-    vertices_diff = np.diff(vertices, axis=1)
-    ordered_vertices[1] = vertices[np.argmin(vertices_diff)]
-    ordered_vertices[3] = vertices[np.argmax(vertices_diff)]
-    # ----------------------------------------------------
+#     ordered_vertices[0] = vertices[np.argmin(vertices_sum)]
+#     ordered_vertices[2] = vertices[np.argmax(vertices_sum)]
     
-    # split the ordered vertices
-    top_l, top_r, btm_r, btm_l = ordered_vertices
+#     # the top-right vertex will have the largest difference in x_pos and y_pos
+#     #   values. Similarly, the bottom-left will have the smallest
+#     vertices_diff = abs(np.diff(vertices, axis=1))
+#     ordered_vertices[1] = vertices[np.argmin(vertices_diff)]
+#     ordered_vertices[3] = vertices[np.argmax(vertices_diff)]
+#     # ----------------------------------------------------
     
-    # perform the four-point transform on the ROI and return as a warped frame
-    # ------------------------------------------------------------------------
+#     # split the ordered vertices
+#     top_l, top_r, btm_r, btm_l = ordered_vertices
     
-    # determine the width of the transformed frame, which will be either the
-    #   maximum distance between the top-left and top-right x_pos or the
-    #   bottom-left and bottom-right x_pos
-    top_width = np.sqrt(((top_r[0] - top_l[0]) ** 2) + ((top_r[1] - top_l[1]) ** 2))
-    btm_width = np.sqrt(((btm_r[0] - btm_l[0]) ** 2) + ((btm_r[1] - btm_l[1]) ** 2))
-    max_width = max(int(top_width), int(btm_width))
+#     # perform the four-point transform on the ROI and return as a warped frame
+#     # ------------------------------------------------------------------------
     
-    # determine the height of the transformed frame, which will be either the
-    #   maximum distance between the top-left and bottom-left y_pos or the
-    #   top-right and bottom-right y_pos
-    left_height = np.sqrt(((top_l[0] - btm_l[0]) ** 2) + ((top_l[1] - btm_l[1]) ** 2))
-    right_height = np.sqrt(((top_r[0] - btm_r[0]) ** 2) + ((top_r[1] - btm_r[1]) ** 2))
-    max_height = max(int(left_height), int(right_height))
+#     # determine the width of the transformed frame, which will be either the
+#     #   maximum distance between the top-left and top-right x_pos or the
+#     #   bottom-left and bottom-right x_pos
+#     top_width = np.sqrt(((top_r[0] - top_l[0]) ** 2) + ((top_r[1] - top_l[1]) ** 2))
+#     btm_width = np.sqrt(((btm_r[0] - btm_l[0]) ** 2) + ((btm_r[1] - btm_l[1]) ** 2))
+#     max_width = max(int(top_width), int(btm_width))
     
-    # define a set of destination vertices for the new frame in order to obtain
-    #   a 'top-down' view. These vertices are in the same order as the original
-    #   vertices: 
-    #       top-left -> top-right -> bottom-right -> bottom-left
-    destination_vertices = np.array([
-                            [0, 0],
-                            [max_width - 1, 0],
-                            [max_width - 1, max_height - 1],
-                            [0, max_height - 1]], dtype='float32')
+#     # determine the height of the transformed frame, which will be either the
+#     #   maximum distance between the top-left and bottom-left y_pos or the
+#     #   top-right and bottom-right y_pos
+#     left_height = np.sqrt(((top_l[0] - btm_l[0]) ** 2) + ((top_l[1] - btm_l[1]) ** 2))
+#     right_height = np.sqrt(((top_r[0] - btm_r[0]) ** 2) + ((top_r[1] - btm_r[1]) ** 2))
+#     max_height = max(int(left_height), int(right_height))
     
-    # compute and apply the perspective transform matrix
-    transform_matrix = cv2.getPerspectiveTransform(ordered_vertices, destination_vertices)
-    warped_frame = cv2.warpPerspective(frame, transform_matrix, (max_width, max_height))
+#     # define a set of destination vertices for the new frame in order to obtain
+#     #   a 'top-down' view. These vertices are in the same order as the original
+#     #   vertices: 
+#     #       top-left -> top-right -> bottom-right -> bottom-left
+#     destination_vertices = np.array([
+#                             [0, 0],
+#                             [max_width - 1, 0],
+#                             [max_width - 1, max_height - 1],
+#                             [0, max_height - 1]], dtype='float32')
     
-    return warped_frame
+#     # compute and apply the perspective transform matrix
+#     transform_matrix = cv2.getPerspectiveTransform(ordered_vertices, destination_vertices)
+#     warped_frame = cv2.warpPerspective(frame, transform_matrix, (max_width, max_height))
+    
+#     return warped_frame
 ###
