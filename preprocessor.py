@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 # import modules
+import matplotlib.pyplot as plt
 import numpy as np
 import cv2
 
@@ -8,6 +9,12 @@ class PreProcessor():
         self.roi_vertices = [] # vertices which define a region of interest
         self.selected_vtx_id = -1 # stores id of the vertex the mouse is over (-1 = None)
         self.active_vtx_id = -1 # stores the id of the active vertex
+        
+        self.sobel_k_size = 15 # kernel size for sobel operator
+        
+        # colour threshold values (min, max)
+        self.sat_threshold = (113,255) # saturation threshold
+        self.val_threshold = (234,255) # value threshold
         
         print('[INFO] Pre-processor initialised!')
     ###
@@ -105,6 +112,10 @@ class PreProcessor():
         if len(self.roi_vertices) == 4:
             processed_frame, _ = four_point_transform(frame, self.roi_vertices)
         
+        # apply HSL saturation thresholding to identify yellow lane markings
+        sat_binary = colour_thresholding(processed_frame, self.sat_threshold,
+                                           self.val_threshold).astype(np.uint8)
+        
         return processed_frame
     ###
 
@@ -131,4 +142,32 @@ def four_point_transform(frame, vertices):
     #                                    frame_size, flags=cv2.INTER_LINEAR)
     
     return warped_frame, inv_transform_matrix
+###
+
+def colour_thresholding(frame, sat_threshold, val_threshold):
+    """ ... """
+    # convert the frame to HLS and HSV colour spaces
+    hls_frame = cv2.cvtColor(frame, cv2.COLOR_RGB2HLS).astype(np.float)
+    hsv_frame = cv2.cvtColor(frame, cv2.COLOR_RGB2HSV).astype(np.float)
+    
+    # extract saturation and value channels
+    sat_channel = hls_frame[:,:,2].astype(np.uint8)
+    val_channel = hsv_frame[:,:,2].astype(np.uint8)
+    
+    # create saturation and value binaries
+    sat_binary = np.zeros_like(sat_channel).astype(np.uint8)
+    sat_binary[(sat_channel > sat_threshold[0]) & (sat_channel <= sat_threshold[1])] = 1
+    
+    val_binary = np.zeros_like(val_channel).astype(np.uint8)
+    val_binary[(val_channel > val_threshold[0]) & (val_channel <= val_threshold[1])] = 1
+    
+    # combine the binaries
+    combined_binary = ((sat_binary == 1) | (val_binary == 1))
+    
+    # plot binaries
+    # plt.imshow(sat_binary * 255, cmap='gray')
+    # plt.imshow(val_binary * 255, cmap='gray')
+    plt.imshow(combined_binary * 255, cmap='gray')
+    
+    return combined_binary
 ###

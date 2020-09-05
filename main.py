@@ -44,6 +44,7 @@ if __name__ == '__main__':
         # frame = cv2.imread(image_path)
         frame = np.array(ImageGrab.grab(bbox=(0, 40, 800, 640)))
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        
         processed_frame = frame.copy()
         
         preproc.update(frame) # update pre-processor object
