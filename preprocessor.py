@@ -126,5 +126,9 @@ def four_point_transform(frame, vertices):
     warped_frame = cv2.warpPerspective(frame, transform_matrix, frame_size,
                                        flags=cv2.INTER_LINEAR)
     
+    # transform frame back to original perspective
+    # warped_frame = cv2.warpPerspective(warped_frame, inv_transform_matrix,
+    #                                    frame_size, flags=cv2.INTER_LINEAR)
+    
     return warped_frame, inv_transform_matrix
 ###

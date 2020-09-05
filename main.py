@@ -2,6 +2,7 @@
 # import
 print('[INFO] Importing dependencies...')
 from preprocessor import PreProcessor
+from PIL import ImageGrab
 import numpy as np
 import cv2
 
@@ -40,7 +41,9 @@ print('[INFO] Setup complete!')
 if __name__ == '__main__':
     print('[INFO] Executing main sequence...')
     while(True):
-        frame = cv2.imread(image_path)
+        # frame = cv2.imread(image_path)
+        frame = np.array(ImageGrab.grab(bbox=(0, 40, 800, 640)))
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         processed_frame = frame.copy()
         
         preproc.update(frame) # update pre-processor object
